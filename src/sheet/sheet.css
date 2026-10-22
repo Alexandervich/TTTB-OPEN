@@ -1,14 +1,18 @@
 .sheet {
-  --line: #111;
+  --line: #1b2e26;
   --label-font: 'Oswald', 'Bebas Neue', Impact, 'Haettenschweiler', 'Arial Narrow Bold', sans-serif;
   --text-font: 'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif;
   max-width: 860px;
   margin: 0 auto 1.5rem;
   padding: 1.4rem;
-  background: #fff;
-  color: #000;
-  border: 1px solid #bbb;
-  box-shadow: 0 6px 24px rgb(0 0 0 / 25%);
+  background:
+    radial-gradient(ellipse at center, transparent 55%, rgb(20 60 50 / 40%) 100%),
+    linear-gradient(180deg, var(--paper-1), var(--paper-2));
+  color: var(--ink);
+  border: 1px solid var(--gold);
+  outline: 1px solid #000;
+  outline-offset: 3px;
+  box-shadow: 0 0 50px rgb(60 200 170 / 30%), 0 10px 30px rgb(0 0 0 / 70%);
   font-family: var(--text-font);
   font-size: 0.9rem;
 }
@@ -54,7 +58,7 @@
   line-height: 1;
   letter-spacing: 0.01em;
   text-transform: uppercase;
-  color: #000;
+  color: #12302b;
   text-shadow: none;
 }
 
@@ -77,12 +81,14 @@
 }
 
 .srow .slabel {
-  flex: 0 0 3.1rem;
+  flex: 0 0 auto;
+  min-width: 3.1rem;
+  white-space: nowrap;
   display: flex;
   align-items: center;
   padding: 0 0.35rem;
-  background: #000;
-  color: #fff;
+  background: #12302b;
+  color: #d6efe2;
   font-family: var(--label-font);
   font-size: 1rem;
   font-weight: 700;
@@ -91,7 +97,7 @@
 }
 
 .srow.wide-label .slabel {
-  flex-basis: 4rem;
+  min-width: 4rem;
 }
 
 .srow .sbox {
@@ -100,8 +106,8 @@
   display: flex;
   align-items: center;
   border: 1.5px solid var(--line);
-  border-left: 0;
-  background: #fff;
+  border-left: 1.5px solid var(--line);
+  background: rgb(235 240 220 / 45%);
 }
 
 .srow.score .sbox {
@@ -122,7 +128,7 @@
 .sheet textarea {
   width: 100%;
   min-width: 0;
-  padding: 0.2rem 0.4rem;
+  padding: 0.2rem 0.6rem;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -135,7 +141,7 @@
 .sheet input:focus,
 .sheet select:focus,
 .sheet textarea:focus {
-  outline: 2px solid #2b6cb0;
+  outline: 2px solid var(--blood);
   outline-offset: -2px;
   box-shadow: none;
 }
@@ -171,12 +177,14 @@
 }
 
 .sbig .slabel {
-  flex: 0 0 3.1rem;
+  flex: 0 0 auto;
+  min-width: 3.1rem;
+  white-space: nowrap;
   display: flex;
   align-items: center;
   padding: 0 0.35rem;
-  background: #000;
-  color: #fff;
+  background: #12302b;
+  color: #d6efe2;
   font-family: var(--label-font);
   font-size: 1.1rem;
   font-weight: 700;
@@ -186,7 +194,7 @@
   position: relative;
   flex: 1 1 0;
   border: 1.5px solid var(--line);
-  border-left: 0;
+  border-left: 1.5px solid var(--line);
 }
 
 .sbig .shint {
@@ -248,8 +256,8 @@
   display: block;
   margin-top: 0.3rem;
   padding: 0.2rem 0;
-  background: #000;
-  color: #fff;
+  background: #12302b;
+  color: #d6efe2;
   font-size: 0.62rem;
   letter-spacing: 0.22em;
 }
@@ -342,7 +350,7 @@
 
 .ruled .slots span {
   display: block;
-  background: #fff;
+  background: var(--paper-1);
 }
 
 .sheet-xp {
@@ -389,6 +397,8 @@
     margin: 0;
     padding: 0;
     border: 0;
+    outline: 0;
+    background: #fff;
     box-shadow: none;
   }
 

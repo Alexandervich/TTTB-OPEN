@@ -2,38 +2,27 @@ import { useEffect, useState } from 'react'
 import './App.css'
 import { navigate } from './navigation.js'
 import CharacterFormPage from './pages/CharacterFormPage.jsx'
+import ClassEditorPage from './pages/ClassEditorPage.jsx'
 import CharacterListPage from './pages/CharacterListPage.jsx'
 
 const NAV_ITEMS = [
   { path: '/characters', label: 'Characters', icon: 'bi-list-nested-nav-menu' },
+  { path: '/classes', label: 'Class Editor', icon: 'bi-house-door-fill-nav-menu' },
   { path: '/character/create', label: 'Character Creator', icon: 'bi-house-door-fill-nav-menu' },
-  { path: '/counter', label: 'Counter', icon: 'bi-plus-square-fill-nav-menu' },
 ]
 
 function HomePage() {
   return (
-    <>
-      <h1>Hello, world!</h1>
-      <p>Welcome to your new app.</p>
-    </>
-  )
-}
-
-function CounterPage() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <h1>Counter</h1>
-      <p className="mb-3">Current count: {count}</p>
-      <button
-        className="btn btn-primary"
-        type="button"
-        onClick={() => setCount((current) => current + 1)}
-      >
-        Increment
+    <div className="gothic-hero">
+      <h1>Tod und Teufel Toolbox</h1>
+      <p className="lede">
+        Tritt ein, Wanderer. Schmiede deinen Helden im Schatten und halte
+        seine Legende im Buch der Verdammten fest.
+      </p>
+      <button className="btn btn-primary" type="button" onClick={() => navigate('/character/create')}>
+        Charakter erschaffen
       </button>
-    </>
+    </div>
   )
 }
 
@@ -55,10 +44,10 @@ function renderRoute(path) {
       return <HomePage />
     case '/characters':
       return <CharacterListPage />
+    case '/classes':
+      return <ClassEditorPage />
     case '/character/create':
       return <CharacterFormPage />
-    case '/counter':
-      return <CounterPage />
     default:
       return <NotFoundPage />
   }
@@ -86,7 +75,7 @@ function App() {
         <div className="top-row ps-3 navbar navbar-dark">
           <div className="container-fluid">
             <a className="navbar-brand" href="/" onClick={(event) => handleNavClick(event, '/')}>
-              TTTB.Web
+              TTTB
             </a>
           </div>
         </div>
@@ -108,7 +97,7 @@ function App() {
                   href={item.path}
                   onClick={(event) => handleNavClick(event, item.path)}
                 >
-                  <span className={`bi ${item.icon}`} aria-hidden="true"></span> {item.label}
+                  <span className={`bi ${item.icon}`} aria-hidden="true"></span>{item.label}
                 </a>
               </div>
             ))}

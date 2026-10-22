@@ -21,6 +21,11 @@ async function request(method, path, body) {
 export const characterApi = {
   getCharacters: async () => (await request('GET', '/characters')).characters,
   getClasses: () => request('GET', '/classes'),
+  addClass: (body) => request('POST', '/classes', body),
+  deleteClass: (id) => request('DELETE', `/classes/${id}`),
+  getClass: (id) => request('GET', `/classes/${id}`),
+  updateClass: (id, body) => request('PUT', `/classes/${id}`, body),
+  rollCharacter: (character) => request('POST', '/characters/roll', character),
   addCharacter: (character) => request('POST', '/characters', character),
   updateCharacter: (character) => request('PUT', `/characters/${character.id}`, character),
   deleteCharacter: (id) => request('DELETE', `/characters/${id}`),

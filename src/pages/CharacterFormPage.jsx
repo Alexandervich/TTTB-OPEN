@@ -15,6 +15,7 @@ import {
   selectIsSaving,
   selectMustSave,
 } from '../flux/characterSelectors.js'
+import { characterApi } from '../flux/api.js'
 import { dispatch, useSelector } from '../flux/store.js'
 import { navigate } from '../navigation.js'
 import CharacterSheet from '../sheet/CharacterSheet.jsx'
@@ -58,6 +59,9 @@ function CharacterForm({ character }) {
   const mustSave = useSelector(selectMustSave)
   const error = useSelector(selectError)
   const [values, setValues] = useState(() => toFormValues(character))
+  const [calculated, setCalculated] = useState(character)
+  const [isRolling, setIsRolling] = useState(false)
+  const [rollError, setRollError] = useState('')
 
   useEffect(() => {
     if (!mustSave) return undefined
@@ -74,7 +78,34 @@ function CharacterForm({ character }) {
 
   const handleSubmit = (event) => {
     event.preventDefault()
-    dispatch(saveCharacter({ ...values, id: character?.id }))
+    dispatch(
+      saveCharacter({
+        ...values,
+        hitPoints: calculated?.hitPoints,
+        hitPointMax: calculated?.hitPointMax,
+        id: character?.id,
+      }),
+    )
+  }
+
+  const handleRoll = async () => {
+    setIsRolling(true)
+    setRollError('')
+    try {
+      const rolled = await characterApi.rollCharacter(values)
+      setValues((current) => ({
+        ...current,
+        ...Object.fromEntries(
+          ['str', 'dex', 'con', 'int', 'wis', 'cha', 'inventory'].map((key) => [key, rolled[key]]),
+        ),
+      }))
+      setCalculated(rolled)
+      dispatch(mustSaveChange(true))
+    } catch (rollFailure) {
+      setRollError(rollFailure.message)
+    } finally {
+      setIsRolling(false)
+    }
   }
 
   const handleCancel = () => {
@@ -85,6 +116,9 @@ function CharacterForm({ character }) {
   return (
     <form onSubmit={handleSubmit}>
       <div className="sheet-actions no-print">
+        <button className="btn btn-secondary" type="button" onClick={handleRoll} disabled={isRolling}>
+          {isRolling ? 'Rolling…' : 'Roll'}
+        </button>
         <button className="btn btn-primary" type="submit" disabled={isSaving}>
           {isSaving ? 'Saving…' : 'Save'}
         </button>
@@ -96,13 +130,13 @@ function CharacterForm({ character }) {
         </button>
       </div>
 
-      {error ? (
+      {error || rollError ? (
         <div className="alert alert-danger no-print" role="alert" style={{ maxWidth: 860, margin: '0 auto 1rem' }}>
-          {error}
+          {rollError || error}
         </div>
       ) : null}
 
-      <CharacterSheet values={values} onChange={handleChange} classes={classes} saved={character} />
+      <CharacterSheet values={values} onChange={handleChange} classes={classes} saved={calculated} />
     </form>
   )
 }

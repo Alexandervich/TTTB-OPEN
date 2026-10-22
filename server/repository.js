@@ -67,9 +67,10 @@ function toViewModel(row, items) {
   return vm
 }
 
-function parseStat(value, label) {
+function parseStat(value, label, { roll = false } = {}) {
+  if (roll) return createStat(parseAndRoll('3d6'))
   if (value === undefined || value === null || String(value).trim() === '') {
-    return createStat(parseAndRoll('3d6'))
+    throw new ValidationError(`${label} is not set. Roll the character first.`)
   }
   const number = Number(value)
   if (!Number.isInteger(number) || number < 3 || number > 18) {
@@ -161,15 +162,15 @@ export function createRepository(db) {
     }
   }
 
-  function build(vm, id, { rollEquipment = false } = {}) {
-    const name = String(vm?.name ?? '').trim()
+  function build(vm, id, { roll = false } = {}) {
+    const name = String(vm?.name ?? '').trim() || (roll ? 'Unnamed' : '')
     if (!name) throw new ValidationError('Name is required.')
     const levelText = String(vm.level ?? '').trim()
     const level = levelText === '' ? 1 : Number(levelText)
     if (!Number.isInteger(level) || level < 1) throw new ValidationError('Level must be a positive whole number.')
 
     const characterClass = loadClass(vm.className)
-    const stats = Object.fromEntries(STAT_KEYS.map((key) => [key, parseStat(vm[key], key.toUpperCase())]))
+    const stats = Object.fromEntries(STAT_KEYS.map((key) => [key, parseStat(vm[key], key.toUpperCase(), { roll })]))
     const character = createCharacter({
       id,
       name,
@@ -179,8 +180,16 @@ export function createRepository(db) {
       description: String(vm.description ?? ''),
       inventory: parseInventory(vm.inventory),
     })
-    if (rollEquipment && character.inventory.length === 0) {
+    if (roll) {
       character.inventory = parseInventory(rollStartingEquipment(characterClass.name).join('\n'))
+    } else {
+      // Keep the hit points that were rolled earlier instead of rolling them again on save.
+      const max = Number(vm.hitPointMax)
+      if (Number.isInteger(max) && max > 0) {
+        const current = Number(vm.hitPoints)
+        character.hitPointMax = max
+        character.hitPoints = Number.isInteger(current) && current >= 0 ? current : max
+      }
     }
     character.armorClass = calculateArmourClass(character.inventory.map((item) => item.name), character.dex.modifier)
     character.extras = parseExtras(vm)
@@ -189,7 +198,114 @@ export function createRepository(db) {
 
   return {
     listClasses() {
-      return db.prepare('SELECT name, hit_die AS hitDie FROM character_class ORDER BY name').all()
+      return db.prepare('SELECT id, name, hit_die AS hitDie FROM character_class ORDER BY name').all()
+    },
+
+    getClass(id) {
+      const row = db.prepare('SELECT name FROM character_class WHERE id = ?').get(String(id))
+      if (!row) throw new NotFoundError('Class not found.')
+      const cls = loadClass(row.name)
+      const { prime_requisite: primeRequisite } = db
+        .prepare('SELECT prime_requisite FROM character_class WHERE id = ?')
+        .get(cls.id)
+      return { ...cls, primeRequisite }
+    },
+
+    // New classes start as a copy of an existing class so every level has valid values to edit.
+    createClass(body) {
+      const name = String(body?.name ?? '').trim()
+      if (!name) throw new ValidationError('Class name is required.')
+      if (name.length > 40) throw new ValidationError('Class name is too long.')
+      const source = this.getClass(body?.copyFromId)
+      const id = randomUUID()
+      inTransaction(() => {
+        if (db.prepare('SELECT 1 FROM character_class WHERE name = ? COLLATE NOCASE').get(name)) {
+          throw new ConflictError('A class with this name already exists.')
+        }
+        db.prepare('INSERT INTO character_class (id, name, hit_die, prime_requisite) VALUES (?, ?, ?, ?)')
+          .run(id, name, source.hitDie, source.primeRequisite)
+        const insert = db.prepare(
+          `INSERT INTO progression (id, class_id, level, hp_bonus, expertise, spells_per_day, spells, attack_bonus,
+             experience_required, save_death, save_magic, save_paralysis, save_breath, save_spell)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        for (const p of source.progressions) {
+          insert.run(
+            randomUUID(), id, p.level, p.hpBonus, p.expertise, p.spellsPerDay, JSON.stringify(p.spells),
+            p.attackBonus, p.experienceRequired, ...SAVES.map((save) => p.savingThrows[save]),
+          )
+        }
+      })
+      return this.getClass(id)
+    },
+
+    deleteClass(id) {
+      const cls = this.getClass(id)
+      const { count } = db.prepare('SELECT COUNT(*) AS count FROM character WHERE class_id = ?').get(id)
+      if (count > 0) {
+        throw new ConflictError(`${cls.name} is used by ${count} character${count === 1 ? '' : 's'} and cannot be deleted.`)
+      }
+      if (db.prepare('SELECT COUNT(*) AS count FROM character_class').get().count <= 1) {
+        throw new ConflictError('The last remaining class cannot be deleted.')
+      }
+      db.prepare('DELETE FROM character_class WHERE id = ?').run(id)
+    },
+
+    updateClass(id, body) {
+      const current = this.getClass(id)
+      const int = (value, label, min, max) => {
+        const number = Number(value)
+        if (value === '' || value === null || !Number.isInteger(number) || number < min || number > max) {
+          throw new ValidationError(`${label} must be a whole number between ${min} and ${max}.`)
+        }
+        return number
+      }
+      const hitDie = int(body?.hitDie, 'Hit die', 2, 100)
+      const primeRequisite = String(body?.primeRequisite ?? '').trim().toLowerCase()
+      if (primeRequisite && !STAT_KEYS.includes(primeRequisite)) {
+        throw new ValidationError(`Prime requisite must be one of: ${STAT_KEYS.join(', ')}.`)
+      }
+      const rows = Array.isArray(body?.progressions) ? body.progressions : []
+      if (rows.length !== current.progressions.length) {
+        throw new ValidationError('The number of levels cannot be changed.')
+      }
+      const parsed = current.progressions.map((existing, index) => {
+        const row = rows[index] ?? {}
+        const label = `Level ${existing.level}`
+        const spells = Array.isArray(row.spells) ? row.spells : []
+        if (spells.length > 12) throw new ValidationError(`${label}: too many spell ranks.`)
+        const spellList = spells.map((n) => int(n, `${label} spells`, 0, 99))
+        return {
+          level: existing.level,
+          hpBonus: int(row.hpBonus, `${label} HP bonus`, 0, 999),
+          expertise: int(row.expertise, `${label} expertise`, 0, 100),
+          attackBonus: int(row.attackBonus, `${label} attack bonus`, -20, 50),
+          experienceRequired: int(row.experienceRequired, `${label} XP`, 0, 1e9),
+          spells: spellList,
+          saves: SAVES.map((save) => int(row.savingThrows?.[save], `${label} ${save} save`, 1, 30)),
+        }
+      })
+      for (let i = 1; i < parsed.length; i++) {
+        if (parsed[i].experienceRequired < parsed[i - 1].experienceRequired) {
+          throw new ValidationError(`Level ${parsed[i].level} XP cannot be lower than the previous level.`)
+        }
+      }
+
+      inTransaction(() => {
+        db.prepare('UPDATE character_class SET hit_die = ?, prime_requisite = ? WHERE id = ?').run(hitDie, primeRequisite, id)
+        const update = db.prepare(
+          `UPDATE progression SET hp_bonus = ?, expertise = ?, spells_per_day = ?, spells = ?, attack_bonus = ?,
+             experience_required = ?, save_death = ?, save_magic = ?, save_paralysis = ?, save_breath = ?, save_spell = ?
+           WHERE class_id = ? AND level = ?`,
+        )
+        for (const p of parsed) {
+          update.run(
+            p.hpBonus, p.expertise, p.spells.reduce((sum, n) => sum + n, 0), JSON.stringify(p.spells),
+            p.attackBonus, p.experienceRequired, ...p.saves, id, p.level,
+          )
+        }
+      })
+      return this.getClass(id)
     },
 
     getCharacters() {
@@ -202,8 +318,23 @@ export function createRepository(db) {
       return row ? toViewModel(row, itemsFor(row.id)) : null
     },
 
+    // Rolls a character without saving it: persist inside a transaction that is always rolled back.
+    rollCharacter(vm) {
+      const character = build(vm, undefined, { roll: true })
+      db.exec('BEGIN')
+      try {
+        db.prepare('DELETE FROM character WHERE name = ?').run(character.name)
+        persist(character)
+        const rolled = this.getCharacter(character.id)
+        delete rolled.id
+        return rolled
+      } finally {
+        db.exec('ROLLBACK')
+      }
+    },
+
     addCharacter(vm) {
-      const character = build(vm, undefined, { rollEquipment: true })
+      const character = build(vm, undefined)
       inTransaction(() => persist(character))
       return this.getCharacter(character.id)
     },

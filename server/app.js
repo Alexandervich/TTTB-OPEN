@@ -12,12 +12,21 @@ const STATUS_BY_ERROR = [
 
 export function createApp(repository, { staticDir = resolve('dist') } = {}) {
   const app = express()
-  app.use(express.json({ limit: '100kb' }))
+  app.use(express.json({ limit: '200kb' }))
 
   const api = express.Router()
 
   api.get('/health', (_req, res) => res.json({ status: 'ok' }))
   api.get('/classes', (_req, res) => res.json(repository.listClasses()))
+
+  api.post('/classes', (req, res) => res.status(201).json(repository.createClass(req.body)))
+  api.get('/classes/:id', (req, res) => res.json(repository.getClass(req.params.id)))
+  api.put('/classes/:id', (req, res) => res.json(repository.updateClass(req.params.id, req.body)))
+
+  api.delete('/classes/:id', (req, res) => {
+    repository.deleteClass(req.params.id)
+    res.status(204).end()
+  })
 
   api.get('/characters', (_req, res) => {
     const characters = repository.getCharacters()
@@ -28,6 +37,10 @@ export function createApp(repository, { staticDir = resolve('dist') } = {}) {
     const character = repository.getCharacter(req.params.id)
     if (!character) throw new NotFoundError('Character not found.')
     res.json(character)
+  })
+
+  api.post('/characters/roll', (req, res) => {
+    res.json(repository.rollCharacter(req.body))
   })
 
   api.post('/characters', (req, res) => {
