@@ -1,0 +1,399 @@
+.sheet {
+  --line: #111;
+  --label-font: 'Oswald', 'Bebas Neue', Impact, 'Haettenschweiler', 'Arial Narrow Bold', sans-serif;
+  --text-font: 'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif;
+  max-width: 860px;
+  margin: 0 auto 1.5rem;
+  padding: 1.4rem;
+  background: #fff;
+  color: #000;
+  border: 1px solid #bbb;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 25%);
+  font-family: var(--text-font);
+  font-size: 0.9rem;
+}
+
+.sheet *,
+.sheet *::before,
+.sheet *::after {
+  box-sizing: border-box;
+}
+
+.sheet-cols {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.1rem;
+}
+
+.sheet-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.sheet-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+
+.sheet-two > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+/* Section headings in a condensed small-caps display face */
+.sheet .stitle {
+  margin: 0.5rem 0 0.15rem;
+  font-family: var(--label-font);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: #000;
+  text-shadow: none;
+}
+
+.sheet .stitle small {
+  display: block;
+  margin: 0.15rem 0 0;
+  font-family: var(--text-font);
+  font-size: 0.75rem;
+  font-weight: 400;
+  font-style: italic;
+  text-transform: none;
+}
+
+/* A field row: black label block + bordered input + italic hint */
+.srow {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  min-height: 2rem;
+}
+
+.srow .slabel {
+  flex: 0 0 3.1rem;
+  display: flex;
+  align-items: center;
+  padding: 0 0.35rem;
+  background: #000;
+  color: #fff;
+  font-family: var(--label-font);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.srow.wide-label .slabel {
+  flex-basis: 4rem;
+}
+
+.srow .sbox {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--line);
+  border-left: 0;
+  background: #fff;
+}
+
+.srow.score .sbox {
+  flex: 0 0 5.4rem;
+}
+
+.srow .shint {
+  flex: 1 1 0;
+  align-self: center;
+  font-size: 0.72rem;
+  font-style: italic;
+  line-height: 1.15;
+}
+
+.sheet input[type='text'],
+.sheet input[type='number'],
+.sheet select,
+.sheet textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 0.2rem 0.4rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #000;
+  font-family: var(--text-font);
+  font-size: 0.95rem;
+}
+
+.sheet input:focus,
+.sheet select:focus,
+.sheet textarea:focus {
+  outline: 2px solid #2b6cb0;
+  outline-offset: -2px;
+  box-shadow: none;
+}
+
+.sheet input[readonly] {
+  cursor: default;
+  font-weight: 600;
+}
+
+.sheet input[type='number']::-webkit-inner-spin-button {
+  display: none;
+}
+
+.sheet .smod {
+  flex: 0 0 auto;
+  padding-right: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #444;
+}
+
+.sheet .suffix {
+  flex: 0 0 auto;
+  padding-right: 0.4rem;
+  font-size: 0.72rem;
+  font-style: italic;
+}
+
+/* Large boxes (HP / AC / Att) have the label as a tall black block */
+.sbig {
+  display: flex;
+  min-height: 4.1rem;
+}
+
+.sbig .slabel {
+  flex: 0 0 3.1rem;
+  display: flex;
+  align-items: center;
+  padding: 0 0.35rem;
+  background: #000;
+  color: #fff;
+  font-family: var(--label-font);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.sbig .sbox {
+  position: relative;
+  flex: 1 1 0;
+  border: 1.5px solid var(--line);
+  border-left: 0;
+}
+
+.sbig .shint {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.45rem;
+  font-size: 0.72rem;
+  font-style: italic;
+}
+
+.sbig input {
+  height: 100%;
+  padding-top: 1.3rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.sheet-note {
+  margin: 0.1rem 0 0;
+  font-size: 0.72rem;
+  font-style: italic;
+  line-height: 1.2;
+}
+
+.sheet-note b {
+  font-weight: 700;
+}
+
+.sbigtext {
+  width: 100%;
+  min-height: 15rem;
+  border: 1.5px solid var(--line) !important;
+  resize: vertical;
+}
+
+.sbigtext.portrait {
+  min-height: 12rem;
+}
+
+.sbigtext.notes {
+  min-height: 24rem;
+}
+
+.sbrand {
+  padding: 0.6rem 0.4rem;
+  border: 3px solid #000;
+  text-align: center;
+  font-family: var(--label-font);
+  line-height: 1;
+}
+
+.sbrand strong {
+  display: block;
+  font-size: 2.4rem;
+  letter-spacing: 0.06em;
+}
+
+.sbrand span {
+  display: block;
+  margin-top: 0.3rem;
+  padding: 0.2rem 0;
+  background: #000;
+  color: #fff;
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+}
+
+.sliterate {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+  font-style: italic;
+  font-size: 0.8rem;
+}
+
+.sliterate input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #000;
+}
+
+.sheet-footer {
+  margin-top: 0.8rem;
+  font-size: 0.7rem;
+}
+
+/* Page 2 */
+.sheet-page-break {
+  margin-top: 1.6rem;
+  padding-top: 1.2rem;
+  border-top: 2px dashed #999;
+}
+
+.sheet-p2 {
+  display: grid;
+  grid-template-columns: 1fr 5.5rem 1fr;
+  gap: 0.9rem;
+}
+
+.sheet-p2 .mv-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-top: 1.7rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.sheet-p2 .mv-col .mv-head {
+  font-family: var(--label-font);
+  font-size: 0.85rem;
+}
+
+.sheet-p2 .mv-col .mv-val {
+  padding: 0.5rem 0;
+  border-top: 1.5px solid #000;
+}
+
+/* Textareas that look like ruled lines on paper */
+.ruled {
+  position: relative;
+  border: 1.5px solid var(--line);
+}
+
+.ruled textarea {
+  display: block;
+  height: 21rem;
+  padding: 0 0.5rem;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(1.5rem - 1px),
+    #000 calc(1.5rem - 1px),
+    #000 1.5rem
+  );
+  line-height: 1.5rem;
+  resize: none;
+}
+
+.ruled .slots {
+  position: absolute;
+  top: 0;
+  right: 0.5rem;
+  pointer-events: none;
+  font-size: 0.72rem;
+  font-style: italic;
+  line-height: 1.5rem;
+  text-align: right;
+}
+
+.ruled .slots span {
+  display: block;
+  background: #fff;
+}
+
+.sheet-xp {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 0.9rem;
+  margin-top: 0.8rem;
+}
+
+.sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-width: 860px;
+  margin: 0 auto 1rem;
+}
+
+@media (max-width: 760px) {
+  .sheet {
+    padding: 0.8rem;
+  }
+
+  .sheet-cols,
+  .sheet-two,
+  .sheet-p2,
+  .sheet-xp {
+    grid-template-columns: 1fr;
+  }
+
+  .sheet-p2 .mv-col {
+    display: none;
+  }
+}
+
+@media print {
+  .sidebar,
+  .page > main > .top-row,
+  .no-print {
+    display: none !important;
+  }
+
+  .sheet {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .sheet-page-break {
+    break-before: page;
+    border-top: 0;
+  }
+}
