@@ -60,6 +60,7 @@ function CharacterForm({ character }) {
   const error = useSelector(selectError)
   const [values, setValues] = useState(() => toFormValues(character))
   const [calculated, setCalculated] = useState(character)
+  const [manual, setManual] = useState(() => ({ ...character?.manual }))
   const [isRolling, setIsRolling] = useState(false)
   const [rollError, setRollError] = useState('')
 
@@ -76,6 +77,11 @@ function CharacterForm({ character }) {
     if (!mustSave) dispatch(mustSaveChange(true))
   }
 
+  const handleManual = (key, value) => {
+    setManual((current) => ({ ...current, [key]: value }))
+    if (!mustSave) dispatch(mustSaveChange(true))
+  }
+
   const handleSubmit = (event) => {
     event.preventDefault()
     dispatch(
@@ -83,6 +89,7 @@ function CharacterForm({ character }) {
         ...values,
         hitPoints: calculated?.hitPoints,
         hitPointMax: calculated?.hitPointMax,
+        manual,
         id: character?.id,
       }),
     )
@@ -100,6 +107,7 @@ function CharacterForm({ character }) {
         ),
       }))
       setCalculated(rolled)
+      setManual({})
       dispatch(mustSaveChange(true))
     } catch (rollFailure) {
       setRollError(rollFailure.message)
@@ -136,7 +144,7 @@ function CharacterForm({ character }) {
         </div>
       ) : null}
 
-      <CharacterSheet values={values} onChange={handleChange} classes={classes} saved={calculated} />
+      <CharacterSheet values={values} onChange={handleChange} classes={classes} saved={calculated} manual={manual} onManual={handleManual} />
     </form>
   )
 }

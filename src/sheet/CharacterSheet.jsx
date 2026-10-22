@@ -60,18 +60,32 @@ function Big({ label, hint, htmlFor, children }) {
 }
 
 // `values` are the editable inputs; `saved` is the server's calculated view of the character (if any).
-export default function CharacterSheet({ values, onChange, classes, saved }) {
+// `manual` holds fields the user typed over; any field not in it is calculated from the rules.
+export default function CharacterSheet({ values, onChange, classes, saved, manual, onManual }) {
   const text = (name, props = {}) => (
     <input id={name} name={name} type="text" value={values[name]} onChange={onChange} {...props} />
   )
 
-  const readOnly = (id, value) => (
-    <input id={id} type="text" value={value ?? ''} readOnly tabIndex={-1} placeholder="—" />
+  const calc = (key) => (saved ? saved[key] : '')
+
+  // An editable field that shows the calculated value until it is overwritten; blank it and save to restore the calculation.
+  const field = (id, key, computed) => (
+    <input
+      id={id}
+      type="text"
+      value={key in manual ? manual[key] : (computed ?? '')}
+      onChange={(event) => onManual(key, event.target.value)}
+      placeholder="—"
+    />
   )
 
-  const preview = (key) => calculateModifier(values[key])
+  const preview = (key) => {
+    const override = manual[`${key}Mod`]
+    if (override !== undefined && override !== '' && Number.isFinite(Number(override))) return Number(override)
+    return calculateModifier(values[key])
+  }
   const mod = (key) => formatModifier(preview(key))
-  const calc = (key) => (saved ? saved[key] : '')
+  const modField = (id, key) => field(id, `${key}Mod`, mod(key))
 
   return (
     <div className="sheet">
@@ -118,7 +132,14 @@ export default function CharacterSheet({ values, onChange, classes, saved }) {
                     onChange={onChange}
                     placeholder="3d6"
                   />
-                  <span className="smod">{mod(key)}</span>
+                  <input
+                    className="smod"
+                    id={`${key}ModScore`}
+                    type="text"
+                    aria-label={`${label} modifier`}
+                    value={`${key}Mod` in manual ? manual[`${key}Mod`] : mod(key)}
+                    onChange={(event) => onManual(`${key}Mod`, event.target.value)}
+                  />
                 </Row>
               ))}
               <p className="sheet-note"><b>Ability check:</b> Roll under or equal on 1d20. Leave a score empty to roll 3d6.</p>
@@ -127,10 +148,10 @@ export default function CharacterSheet({ values, onChange, classes, saved }) {
             <div>
               <Title>Saving Throws</Title>
               {SAVING_THROWS.map(({ key, label, hint }) => (
-                <Row key={key} label={label} htmlFor={key} hint={hint}>{readOnly(key, calc(key))}</Row>
+                <Row key={key} label={label} htmlFor={key} hint={hint}>{field(key, key, calc(key))}</Row>
               ))}
               <Row label="±" htmlFor="saveMod" hint="WIS modifier to saves vs magic">
-                {readOnly('saveMod', mod('wis'))}
+                {modField('saveMod', 'wis')}
               </Row>
               <p className="sheet-note"><b>Saving throw:</b> Roll over or equal on 1d20</p>
             </div>
@@ -139,19 +160,19 @@ export default function CharacterSheet({ values, onChange, classes, saved }) {
           <Title>Combat</Title>
           <div className="sheet-two">
             <div>
-              <Big label="HP" hint="Hit points" htmlFor="hitPoints">{readOnly('hitPoints', calc('hitPoints'))}</Big>
-              <Big label="AC" hint="Armour Class" htmlFor="armorClass">{readOnly('armorClass', calc('armorClass'))}</Big>
-              <Big label="Att" hint="Attack bonus" htmlFor="attackBonus">{readOnly('attackBonus', calc('attackBonus'))}</Big>
+              <Big label="HP" hint="Hit points" htmlFor="hitPoints">{field('hitPoints', 'hitPoints', calc('hitPoints'))}</Big>
+              <Big label="AC" hint="Armour Class" htmlFor="armorClass">{field('armorClass', 'armorClass', calc('armorClass'))}</Big>
+              <Big label="Att" hint="Attack bonus" htmlFor="attackBonus">{field('attackBonus', 'attackBonus', calc('attackBonus'))}</Big>
             </div>
             <div>
-              <Row label="Max" htmlFor="hitPointMax" hint="Maximum hit points">{readOnly('hitPointMax', calc('hitPointMax'))}</Row>
-              <Row label="±" htmlFor="conMod" hint="CON modifier to hit points">{readOnly('conMod', mod('con'))}</Row>
+              <Row label="Max" htmlFor="hitPointMax" hint="Maximum hit points">{field('hitPointMax', 'hitPointMax', calc('hitPointMax'))}</Row>
+              <Row label="±" htmlFor="conMod" hint="CON modifier to hit points">{modField('conMod', 'con')}</Row>
               <Row label="Un" htmlFor="unAc" hint="Unarmoured AC: 10 + DEX modifier">
-                {readOnly('unAc', preview('dex') === null ? '' : 10 + preview('dex'))}
+                {field('unAc', 'unAc', preview('dex') === null ? '' : 10 + preview('dex'))}
               </Row>
-              <Row label="±" htmlFor="dexAcMod" hint="DEX modifier to Armour Class">{readOnly('dexAcMod', mod('dex'))}</Row>
-              <Row label="Mel" htmlFor="melMod" hint="STR modifier to melee att./damage">{readOnly('melMod', mod('str'))}</Row>
-              <Row label="Mis" htmlFor="misMod" hint="DEX modifier to missile attacks">{readOnly('misMod', mod('dex'))}</Row>
+              <Row label="±" htmlFor="dexAcMod" hint="DEX modifier to Armour Class">{modField('dexAcMod', 'dex')}</Row>
+              <Row label="Mel" htmlFor="melMod" hint="STR modifier to melee att./damage">{modField('melMod', 'str')}</Row>
+              <Row label="Mis" htmlFor="misMod" hint="DEX modifier to missile attacks">{modField('misMod', 'dex')}</Row>
             </div>
           </div>
 
@@ -168,8 +189,8 @@ export default function CharacterSheet({ values, onChange, classes, saved }) {
           <p className="sheet-note">Character portrait, symbol, description</p>
 
           <Title>Encounters</Title>
-          <Row label="Init" htmlFor="initMod" hint="DEX modifier to initiative (optional)">{readOnly('initMod', mod('dex'))}</Row>
-          <Row label="±" htmlFor="reactMod" hint="CHA modifier to reaction rolls">{readOnly('reactMod', mod('cha'))}</Row>
+          <Row label="Init" htmlFor="initMod" hint="DEX modifier to initiative (optional)">{modField('initMod', 'dex')}</Row>
+          <Row label="±" htmlFor="reactMod" hint="CHA modifier to reaction rolls">{modField('reactMod', 'cha')}</Row>
 
           <Title>Exploration</Title>
           {EXPLORATION.map(({ key, label, hint }) => (
@@ -181,9 +202,9 @@ export default function CharacterSheet({ values, onChange, classes, saved }) {
 
           <Title>Movement</Title>
           <p className="sheet-note">Base mv. rate = 120, unless encumbered</p>
-          <Row label="Ov" htmlFor="mvOv" hint="Overland: ⅕ base mv. rate (miles/day)">{readOnly('mvOv', MOVEMENT.overland)}</Row>
-          <Row label="Ex" htmlFor="mvEx" hint="Exploration: base mv. rate (feet/turn)">{readOnly('mvEx', MOVEMENT.exploration)}</Row>
-          <Row label="En" htmlFor="mvEn" hint="Encounter: ⅓ base mv. rate (feet/round)">{readOnly('mvEn', MOVEMENT.encounter)}</Row>
+          <Row label="Ov" htmlFor="mvOv" hint="Overland: ⅕ base mv. rate (miles/day)">{field('mvOv', 'mvOv', MOVEMENT.overland)}</Row>
+          <Row label="Ex" htmlFor="mvEx" hint="Exploration: base mv. rate (feet/turn)">{field('mvEx', 'mvEx', MOVEMENT.exploration)}</Row>
+          <Row label="En" htmlFor="mvEn" hint="Encounter: ⅓ base mv. rate (feet/round)">{field('mvEn', 'mvEn', MOVEMENT.encounter)}</Row>
 
           <Title note="By class; extra langs. if INT 13+">Languages</Title>
           <textarea className="sbigtext" style={{ minHeight: '5rem' }} name="languages" aria-label="Languages" value={values.languages} onChange={onChange} />
@@ -244,10 +265,10 @@ export default function CharacterSheet({ values, onChange, classes, saved }) {
         <textarea className="sbigtext notes" name="notes" aria-label="Other Notes" value={values.notes} onChange={onChange} />
 
         <div className="sheet-xp">
-          <Big label="XP" hint="Experience points" htmlFor="currentExp">{readOnly('currentExp', calc('currentExp'))}</Big>
+          <Big label="XP" hint="Experience points" htmlFor="currentExp">{field('currentExp', 'currentExp', calc('currentExp'))}</Big>
           <div className="sheet-stack">
-            <Row label="Next" htmlFor="nextLvlExp" hint="Experience points for next level">{readOnly('nextLvlExp', calc('nextLvlExp'))}</Row>
-            <Row label="%" htmlFor="pct" hint="Prime requisite modifier to XP">{readOnly('pct', calc('pct'))}</Row>
+            <Row label="Next" htmlFor="nextLvlExp" hint="Experience points for next level">{field('nextLvlExp', 'nextLvlExp', calc('nextLvlExp'))}</Row>
+            <Row label="%" htmlFor="pct" hint="Prime requisite modifier to XP">{field('pct', 'pct', calc('pct'))}</Row>
           </div>
         </div>
       </div>

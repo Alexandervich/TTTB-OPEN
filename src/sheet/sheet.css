@@ -146,13 +146,19 @@
   box-shadow: none;
 }
 
-.sheet input[readonly] {
-  cursor: default;
+.sheet .sbox input[type='text'] {
   font-weight: 600;
 }
 
 .sheet input[type='number']::-webkit-inner-spin-button {
   display: none;
+}
+
+.sheet input[type='text'].smod {
+  flex: 0 0 2.2rem;
+  width: 2.2rem;
+  padding: 0.1rem 0.3rem 0.1rem 0;
+  text-align: right;
 }
 
 .sheet .smod {

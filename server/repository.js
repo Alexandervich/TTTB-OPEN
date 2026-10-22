@@ -27,6 +27,37 @@ function parseExtras(vm) {
   return extras
 }
 
+// Sheet fields the user may type over. Numbers are [min, max]; null means free text.
+const MANUAL_FIELDS = {
+  hitPoints: [-999, 99999], hitPointMax: [0, 99999], armorClass: [-20, 99], attackBonus: [-20, 50],
+  deathSavingThrow: [0, 99], magicSavingThrow: [0, 99], paralysisSavingThrow: [0, 99],
+  breathSavingThrow: [0, 99], spellSavingThrow: [0, 99],
+  currentExp: [0, 1e9], nextLvlExp: [0, 1e9],
+  ...Object.fromEntries(STAT_KEYS.map((key) => [`${key}Mod`, [-20, 20]])),
+  unAc: null, pct: null, mvOv: null, mvEx: null, mvEn: null,
+}
+
+// Blank entries mean "use the calculated value" and are dropped.
+function parseManual(vm) {
+  const manual = {}
+  for (const [key, range] of Object.entries(MANUAL_FIELDS)) {
+    const raw = vm?.manual?.[key]
+    if (raw === undefined || raw === null || String(raw).trim() === '') continue
+    const text = String(raw).trim()
+    if (!range) {
+      if (text.length > 20) throw new ValidationError(`${key} is too long.`)
+      manual[key] = text
+      continue
+    }
+    const number = Number(text)
+    if (!Number.isInteger(number) || number < range[0] || number > range[1]) {
+      throw new ValidationError(`${key} must be a whole number between ${range[0]} and ${range[1]}.`)
+    }
+    manual[key] = number
+  }
+  return manual
+}
+
 // Prime requisite XP modifier table (TTTB.pdf 1.4.3).
 function formatXpModifier(score) {
   if (!Number.isInteger(score)) return ''
@@ -54,7 +85,8 @@ function toViewModel(row, items) {
     description: row.description,
     currentExp: String(row.current_exp),
     nextLvlExp: String(row.next_lvl_exp),
-    pct: formatXpModifier(row[`${row.prime_requisite}_base`]),
+    pct: extras.manual?.pct ?? formatXpModifier(row[`${row.prime_requisite}_base`]),
+    manual: extras.manual ?? {},
     spells: JSON.parse(row.spells || '[]'),
   }
   for (const key of STAT_KEYS) {
@@ -170,7 +202,12 @@ export function createRepository(db) {
     if (!Number.isInteger(level) || level < 1) throw new ValidationError('Level must be a positive whole number.')
 
     const characterClass = loadClass(vm.className)
-    const stats = Object.fromEntries(STAT_KEYS.map((key) => [key, parseStat(vm[key], key.toUpperCase(), { roll })]))
+    const manual = roll ? {} : parseManual(vm)
+    const stats = Object.fromEntries(STAT_KEYS.map((key) => {
+      const stat = parseStat(vm[key], key.toUpperCase(), { roll })
+      if (`${key}Mod` in manual) stat.modifier = manual[`${key}Mod`]
+      return [key, stat]
+    }))
     const character = createCharacter({
       id,
       name,
@@ -192,7 +229,13 @@ export function createRepository(db) {
       }
     }
     character.armorClass = calculateArmourClass(character.inventory.map((item) => item.name), character.dex.modifier)
-    character.extras = parseExtras(vm)
+    for (const key of ['hitPoints', 'hitPointMax', 'armorClass', 'attackBonus', 'currentExp', 'nextLvlExp']) {
+      if (key in manual) character[key] = manual[key]
+    }
+    for (const save of SAVES) {
+      if (`${save}SavingThrow` in manual) character.savingThrows[save] = manual[`${save}SavingThrow`]
+    }
+    character.extras = { ...parseExtras(vm), manual }
     return character
   }
 
